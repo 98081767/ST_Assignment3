@@ -210,6 +210,13 @@ movies.train.fit = forecast(movies.train.ets)
 accuracy(movies.train.fit, movies.test)
 
 
+#Next steps
+# - compare against simple models p20
+# - run cross validation
+# - plot estimate over test data
+# - repeat all steps for wide data
+
+
 
 #-----------
 
