@@ -463,9 +463,64 @@ mPadd.train.predict_ma = forecast(mPadd.ma)
 
 
 
+#---------------------------------------------------------------------------------------------
+#-----------------------------TS BY GENRE----------------------------------------
+#---------------------------------------------------------------------------------------------
+
+mMovies = read.csv("MonthlyMoviesResults.csv", stringsAsFactors = FALSE)
+
+str(mMovies)
+
+moviesFull = read.csv(file="MovieClean3.csv", stringsAsFactors = FALSE)
+
+str(moviesFull)
+
+moviesFull = moviesFull %>%
+  select(
+    ID,
+    imdbID,
+    TMDBID,
+    Title,
+    Runtime,
+    Rated,
+    Awards,
+    IMDB_Rating,
+    Wide_Release,
+    G_Action:G_Western
+  )
+
+
+moviesComb = left_join(mMovies, moviesFull, by=c("Title"))
+
+write.csv(moviesComb, "MonthlyMoviesCombined.csv")
+
+moviesComb = moviesComb %>%
+  mutate(RecordDate = as.Date(paste(Year, Month, 1, sep="-"))) 
 
 
 
+#-------------------------EDA
+
+action = moviesComb %>%
+  filter(G_Action == 1) %>%
+  filter(RecordDate >= "2014-06-01") %>% 
+  select(Sales)
+
+family = moviesComb %>%
+  filter(G_Family == 1) %>%
+  filter(RecordDate >= "2014-06-01") %>% 
+  select(Sales)
+
+horror = moviesComb %>%
+  filter(G_Horror == 1) %>%
+  filter(RecordDate >= "2014-06-01") %>% 
+  select(Sales)
+  
+animation = moviesComb %>%
+  filter(G_Animation == 1) %>%
+  filter(RecordDate >= "2014-06-01") %>% 
+  select(Sales)
+  
 
 
 

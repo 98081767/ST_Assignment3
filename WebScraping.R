@@ -36,8 +36,8 @@ library(tidyr)
 #https://www.boxofficemojo.com/monthly/?view=releasedate&yr=2018&month=9&adjust_yr=2018&p=.htm
 
 
-getYear = "1982"
-getMonth = "1"
+getYear = "2018"
+getMonth = "2"
 getAdjustyear = "2018"
 
 base_url = "https://www.boxofficemojo.com/monthly/"
@@ -48,7 +48,6 @@ resp = GET(url = base_url, query=query_params)
 str(resp)
 
 resp_html = content(resp)
-
 
 # #using rvest functions
 # install.packages("rvest")
@@ -63,23 +62,24 @@ title = page_html %>%
  html_text()
  
 
-myMthColNames = c("Rank", "Title", "Studio", "Sales", "Theatres", "Opening", "OpeningTheatres", "OpeningDate", "ClosingDate")
+myMthColNames = c("Rank", "Title", "Studio", "Sales", "Theatres", "OpeningSales", "OpeningTheatres", "OpeningDate", "ClosingDate")
 
-page_html %>%
+page_html %>% 
   html_nodes("table") %>%
-  extract2(4) %>% #write_xml(file="table.txt")
+  extract2(4) %>% 
   html_table(fill=TRUE) %>% 
-  
   mutate(X10 = if (exists('X10', where = .)) X10 else NA) %>% 
-  
   select(-X10) %>% #View()
   setNames(myMthColNames) %>% 
-  filter(Rank == "Totals:") %>% #View()
+  filter(grepl(pattern="^\\d", Rank)) %>% 
   mutate(Year = getYear, 
          Month = getMonth) %>% 
-  select(Sales, Year, Month) %>% #View()
-  mutate(Sales = as.numeric(gsub("[\\$,]", "", Sales))) %>% #View()
-  .$Sales
+  mutate(Sales = as.numeric(gsub("[\\$,]", "", Sales)),
+         Theatres = as.numeric(gsub("[\\$,]", "", Theatres)),
+         OpeningSales = as.numeric(gsub("[\\$,]", "", OpeningSales)),
+         OpeningTheatres = as.numeric(gsub("[\\$,]", "", OpeningTheatres))
+         ) %>% View()
+  
   
   
 
@@ -348,6 +348,139 @@ getMonthlyBoxOfficeTSByDate = function(startDate, priceAdj, myType) {
 getdf = getMonthlyBoxOfficeTSByDate("1985-1-1", "2018", "widedate")
 
 write.csv(getdf, file="MonthlyTSResultsWide.csv")
+
+
+#-------------GET MONTHLY SALES PER MOVIE FOR TIME SERIES
+
+#getdf = getMonthlyBoxOfficeMovies("2018", "9", "2018", "releasedate")
+
+
+getMonthlyBoxOfficeMovies = function(theYear, theMonth, priceAdj, theType) {
+  
+  tryCatch(
+    {  
+      
+      #check if proper date
+      #only allow dates before current month. 
+      theDay = "1"
+      #theYear = "2018"
+      #theMonth = "10"
+      checkDate = paste(theYear, theMonth, theDay, sep="-")
+      print(checkDate)
+      
+      if (!is.na(parse_date_time(checkDate,orders="ymd"))) {
+        checkDate = as.Date(checkDate)
+        
+        if (as.duration(interval(checkDate,now())) %/% as.duration(months(1)) > 0) {
+          
+          #https://www.boxofficemojo.com/monthly/?view=releasedate&yr=2018&month=9&adjust_yr=2018&p=.htm
+          
+          if (is.na(theType)) {
+            theType = "releasedate"
+          }
+          #other types:
+          # - "releasedate" - full monthly results
+          # - "widedate" - wide release movies only
+          # - "limited" - limted release movies only
+          
+          
+          base_url = "https://www.boxofficemojo.com/monthly/"
+          query_params = list(yr=theYear, month=theMonth, adjust_yr=priceAdj, view=theType)
+          
+          myResp = GET(url = base_url, query=query_params)
+          
+          myPage_html = read_html(myResp)
+          
+          
+          myMthColNames = c("Rank", "Title", "Studio", "Sales", "Theatres", "OpeningSales", "OpeningTheatres", "OpeningDate", "ClosingDate")
+          
+          monthSales = myPage_html %>%
+            html_nodes("table") %>%
+            extract2(4) %>% 
+            html_table(fill=TRUE) %>% 
+            mutate(X10 = if (exists('X10', where = .)) X10 else NA) %>% 
+            select(-X10) %>% #View()
+            setNames(myMthColNames) %>% 
+            filter(grepl(pattern="^\\d", Rank)) %>% 
+            mutate(Year = theYear, 
+                   Month = theMonth) %>% 
+            mutate(Sales = as.numeric(gsub("[\\$,]", "", Sales)),
+                   Theatres = as.numeric(gsub("[\\$,]", "", Theatres)),
+                   OpeningSales = as.numeric(gsub("[\\$,]", "", OpeningSales)),
+                   OpeningTheatres = as.numeric(gsub("[\\$,]", "", OpeningTheatres))
+            ) 
+
+          
+          return(monthSales)
+          
+          
+        } else {
+          return(NULL)
+        }
+        
+      } else {
+        return(NULL)
+      }
+      
+    },
+    error=function(e) return(NULL)
+  )
+}
+
+
+#-----------------------GET MOVIES BY MONTH -------------------------
+# - "releasedate" - full monthly results
+# - "widedate" - wide release movies only
+# - "limited" - limted release movies only
+getmmovies = getMonthlyMoviesByDate("2014-1-1", "2018", "releasedate")
+
+write.csv(getmmovies, file="MonthlyMoviesResults.csv")
+
+
+getMonthlyMoviesByDate = function(startDate, priceAdj, myType) {
+  
+  #startDate = "2017-1-1"
+  cMonths = floor(interval(startDate, now()) / duration(num=1, units="months"))
+  
+  mDates = ymd(startDate) + months(x = seq.int(from = 0, to = cMonths, by = 1))
+  
+  yMonths = data.frame(yr=year(mDates), mth=month(mDates))
+  
+  
+  mydf = NULL
+  fulldf = NULL
+  for (x in 1:nrow(yMonths)) {
+    myYear = yMonths[x,1]
+    myMonth = yMonths[x,2]
+    
+    #wait 2 sec before next request to avoid spamming
+    Sys.sleep(1)
+    print(paste(myYear, myMonth, "1", sep="-"))
+    
+    #other types:
+    # - "releasedate" - full monthly results
+    # - "widedate" - wide release movies only
+    # - "limited" - limted release movies only
+    
+    mydf = getMonthlyBoxOfficeMovies(myYear, myMonth, priceAdj, myType)
+    
+    
+    if(!is.null(mydf)) {
+      if(!is.null(fulldf)) {
+        
+        fulldf = rbind(fulldf, mydf)
+        
+      } else {
+        
+        fulldf = mydf
+        
+      }
+      
+    }
+  }
+  return(fulldf)  
+  
+}
 
 
 #--------------------------------------------------------------------------------------
