@@ -307,7 +307,140 @@ sqrt(mean(e^2, na.rm=TRUE)) #RMSE (CV)
 #Next steps
 # - repeat all steps for wide data
 
-
-
 #-----------
+
+#----------------------------------------COMPARE TWO MOVIES
+
+wMovies = read.csv("WeeklyBoxOfficeResults2015-2018.csv")
+
+str(wMovies)
+
+na_strings <- c("NA", "N A", "N / A", "N/A", "N/ A", "Not Available", "NOt available", "-", "n/a")
+
+#----------------------Initial cleaning of data
+  
+wMovies = wMovies %>%
+  mutate(
+    WeeklyGross = trimws(WeeklyGross),
+    TheatreCount = trimws(TheatreCount),
+    TotalGross = trimws(TotalGross),
+    Budget = trimws(Budget)
+  ) %>% 
+  replace_with_na(replace= list(
+                            WeeklyGross = na_strings,
+                            TheatreCount = na_strings,
+                            Average = na_strings,
+                            TotalGross = na_strings,
+                            Budget = na_strings
+                            )
+                  ) %>% 
+  mutate(
+    WeeklyGross = as.numeric(gsub("[\\$,]", "", WeeklyGross)),
+    TheatreCount = as.numeric(gsub("[\\$,]", "", TheatreCount)),
+    Average = as.numeric(gsub("[\\$,]", "", Average)),
+    TotalGross = as.numeric(gsub("[\\$,]", "", TotalGross)),
+    Budget = formatC(as.numeric(gsub("[\\$,]", "", Budget)) * 1000000, digits=10, format="d")
+  ) 
+
+
+mTaken = wMovies %>%
+  filter(Title %in% c("Taken 3"))
+
+mPadd = wMovies %>%
+  filter(Title %in% c("Paddington"))
+
+
+mTaken.ts = ts(mTaken$WeeklyGross, start=c(2015, 2), frequency=52)
+
+mPadd.ts = ts(mPadd$WeeklyGross, start=c(2015, 3), frequency=52)
+
+print(mTaken.ts)
+print(mPadd.ts)
+
+plot(mTaken.ts)
+plot(mPadd.ts)
+
+
+mTaken.diff = diff(mTaken.ts)
+plot(mTaken.diff)
+acf(mTaken.diff)
+
+mTaken.log = log(mTaken.ts)
+plot(mTaken.log)
+acf(mTaken.log)
+
+mTaken.difflog = diff(log(mTaken.ts))
+plot(mTaken.difflog)
+acf(mTaken.difflog)
+
+
+mPadd.diff = diff(mPadd.ts)
+plot(mPadd.diff)
+acf(mPadd.diff)
+
+mPadd.log = log(mPadd.ts)
+plot(mPadd.log)
+acf(mPadd.log)
+
+mPadd.difflog = diff(log(mPadd.ts))
+plot(mPadd.difflog)
+acf(mPadd.difflog)
+
+
+#----------------------------------train / test split - for paddington
+
+mPadd.train = window(mPadd.ts, end=c(2015, 17))
+mPadd.test = window(mPadd.ts, start=c(2015,18), end=c(2015,24))
+
+#-----------TRAINING DATA
+
+mPadd.train.tbats = tbats(mPadd.train)
+mPadd.train.tbats$seasonal.periods
+
+#check model via forecast
+mPadd.train.forecast = forecast(mPadd.train)
+summary(mPadd.train.forecast)
+
+print(mPadd.train)
+print(mPadd.test)
+
+
+mPadd.ts %>%
+  ur.kpss() %>%
+  summary()
+#Value of test-statistic is: 0.5864 - relatively stationary
+
+
+#------fit arima AR model
+mPadd.ar = arima(mPadd.ts, order=c(1,0,0))
+
+mPadd.ar %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(mPadd.ar)
+
+mPadd.train.predict_ar = forecast(mPadd.ar)
+
+#-----fit arima MA model
+mPadd.ma = arima(mPadd.ts, order=c(0,0,1))
+
+mPadd.ma %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(mPadd.ma)
+
+mPadd.train.predict_ma = forecast(mPadd.ma)
+
+
+
+
+
+
+
+
+
+
+
 
