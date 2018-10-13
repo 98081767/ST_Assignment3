@@ -77,6 +77,28 @@ ts.plot(movies.ts)
 start(movies.ts)
 end(movies.ts)
 
+autoplot(movies.ts)
+
+ggseasonplot(movies.ts) + 
+  scale_y_log10(labels = scales::dollar)
+
+
+ggseasonplot(movies.ts, polar=TRUE)
+
+#--filter from year 2000
+movies2000.ts = window(movies.ts, start=2000)
+
+autoplot(movies2000.ts) +
+  scale_y_log10(labels = scales::dollar)
+
+ggseasonplot(movies2000.ts) + 
+  scale_y_log10(labels = scales::dollar)
+
+
+
+
+
+
 movies %>%
   ggplot(aes(y=Sales, x=Date)) +
   geom_point() +
@@ -116,6 +138,11 @@ movies.diff %>%
   ur.kpss() %>%
   summary()
 #Value of test-statistic is: 0.0274 
+
+#run ljung-box test
+Box.test(movies.ts, lag=48, fitdf=0, type="Ljung-Box")
+#p-value < 2.2e-16 (suggests this is data is not white noise.)
+
 
 #------try fourier transformation
 #movies.fft = fft(movies.diff)
