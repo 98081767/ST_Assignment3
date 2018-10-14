@@ -516,10 +516,10 @@ action = moviesComb %>%
   summarise(AverageSales = mean(Sales))%>% 
   complete(RecordDate = seq(min(RecordDate), max(RecordDate), "1 month")) %>%
   mutate(AverageSales = ifelse(!is.na(AverageSales), AverageSales, 0)) %>%
-  mutate(AverageSalesAdj = AverageSales/100)
+  mutate(AverageSalesAdj = AverageSales/100) 
 
 
-action.ts = ts(action$AverageSales, start=c(2014,6), frequency=12)
+action.ts = ts(action$AverageSalesAdj, start=c(2014,6), frequency=12)
 autoplot(action.ts)
 ggseasonplot(action.ts) + 
   scale_y_log10(labels = scales::dollar)
@@ -557,8 +557,147 @@ action.ets %>%
 
 checkresiduals(action.ets)
 
+mean(residuals(action.ets))
+
+#difference
+action.diff = diff(action.ts, lag=6)
+
+autoplot(action.diff)
+ggAcf(action.diff)
+
+action.diff.forecast = forecast(action.diff)
+summary(action.diff.forecast)
+
+action.diff.ets = ets(action.diff)
+summary(action.diff.ets)
+
+action.diff.ets %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(action.diff.ets)
+#p-value = 0.08032
+
+mean(residuals(action.diff.ets))
 
 
+#train/test split
+action.train = window(action.ts, end=c(2017,12))
+action.test = window(action.ts, start=c(2018,1))
+
+ggAcf(action.train)
+
+action.train.tbats = tbats(action.train)
+action.train.tbats$seasonal.periods
+
+action.train %>%
+  ur.kpss() %>%
+  summary()
+#Value of test-statistic is: 0.0872 (stationary)
+
+#run ljung-box test
+Box.test(action.train, lag=24, fitdf=0, type="Ljung-Box")
+#p-value = 6.311e-08 - significant therefore not stationary
+
+
+#---------------------------------------------------DIFF
+actionDiff.train = diff(action.train, lag=6)
+ggAcf(actionDiff.train)
+
+
+actionDiff.train %>%
+  ur.kpss() %>%
+  summary()
+#Value of test-statistic is: 0.0514 (stationary)
+
+#run ljung-box test
+Box.test(actionDiff.train, lag=24, fitdf=0, type="Ljung-Box")
+#p-value = 0.1627 - not significant therefore stationary
+
+#check forecast
+actionDiff.forecast = forecast(actionDiff.train)
+summary(actionDiff.forecast)
+
+
+actionDiff.train.ets = ets(actionDiff.train)
+summary(actionDiff.train.ets)
+
+actionDiff.train.ets %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(actionDiff.train.ets)
+
+actionDiff.ets.predict = forecast(actionDiff.train.ets, h=10)
+
+accuracy(actionDiff.ets.predict, action.test)
+
+#actionConv.ets.predict = cumsum(actionDiff.ets.predict)
+
+
+#ETS model
+action.train.ets = ets(action.train)
+summary(action.train.ets)
+
+action.train.ets %>%
+  forecast() %>%
+  autoplot()
+
+action.ets.predict = forecast(action.train.ets, h=10)
+
+
+#naive model
+action.naive = naive(action.train, h = 10)
+
+#mean model
+action.mean <- meanf(action.train, h = 10)
+
+
+#AR model
+action.ar = arima(action.train, order=c(1,0,0))
+
+action.ar %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(action.ar)
+
+action.ar.predict = forecast(action.ar, h=10)
+
+#MA model
+action.ma = arima(action.train, order=c(0,0,1))
+
+action.ma %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(action.ma)
+
+action.ma.predict = forecast(action.ma)
+
+#check auto arima
+action.arima = auto.arima(action.train)
+action.arima.predict = forecast(action.arima, h=10)
+
+
+#check accuracy
+accuracy(action.naive, action.test)       #MAPE: 91.1963
+accuracy(action.mean, action.test)        #MAPE: 71.03007
+accuracy(action.ets.predict, action.test) #MAPE: 35.39728
+accuracy(action.ar.predict, action.test)  #MAPE: 74.58847
+accuracy(action.ma.predict, action.test)  #MAPE: 74.20026
+accuracy(action.arima.predict, action.test) #MAPE: 54.46918
+
+#plot pridictions
+autoplot(action.train) + 
+  autolayer(action.naive, series="Naive") +
+  autolayer(action.mean, series="Mean") +
+  autolayer(action.ets.predict, series="ETS") +
+  autolayer(action.arima.predict, series="ARIMA") +
+  autolayer(action.test, series="Actual") 
+  
+  
+  
 
 
 
