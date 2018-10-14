@@ -494,34 +494,302 @@ moviesComb = left_join(mMovies, moviesFull, by=c("Title"))
 
 write.csv(moviesComb, "MonthlyMoviesCombined.csv")
 
+
+#--------------------------------------------
+
+moviesComb = read.csv("MonthlyMoviesCombined.csv")
+
 moviesComb = moviesComb %>%
-  mutate(RecordDate = as.Date(paste(Year, Month, 1, sep="-"))) 
+  mutate(RecordDate = as.Date(paste(Year, Month, 1, sep="-")))
+  
+
 
 
 
 #-------------------------EDA
 
+#------------------------------ACTION
 action = moviesComb %>%
   filter(G_Action == 1) %>%
   filter(RecordDate >= "2014-06-01") %>% 
-  select(Sales)
+  group_by(RecordDate) %>%
+  summarise(AverageSales = mean(Sales))%>% 
+  complete(RecordDate = seq(min(RecordDate), max(RecordDate), "1 month")) %>%
+  mutate(AverageSales = ifelse(!is.na(AverageSales), AverageSales, 0)) %>%
+  mutate(AverageSalesAdj = AverageSales/100)
 
+
+action.ts = ts(action$AverageSales, start=c(2014,6), frequency=12)
+autoplot(action.ts)
+ggseasonplot(action.ts) + 
+  scale_y_log10(labels = scales::dollar)
+
+
+ggseasonplot(action.ts, polar=TRUE)
+
+
+action.tbats = tbats(action.ts)
+action.tbats$seasonal.periods
+
+
+action.ts %>%
+  ur.kpss() %>%
+  summary()
+#Value of test-statistic is: 0.1288 (stationary)
+
+#run ljung-box test
+Box.test(action.ts, lag=48, fitdf=0, type="Ljung-Box")
+#p-value = 0.2106 - not significant therefore stationary
+
+ggAcf(action.ts)
+
+
+#check model via forecast
+action.forecast = forecast(action.ts)
+summary(action.forecast)
+
+action.ets = ets(action.ts)
+summary(action.ets)
+
+action.ets %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(action.ets)
+
+
+
+
+
+
+
+#------------------------------FAMILY
 family = moviesComb %>%
   filter(G_Family == 1) %>%
   filter(RecordDate >= "2014-06-01") %>% 
-  select(Sales)
+  group_by(RecordDate) %>%
+  summarise(AverageSales = mean(Sales)) %>% 
+  complete(RecordDate = seq(min(RecordDate), max(RecordDate), "1 month")) %>%
+  mutate(AverageSales = ifelse(!is.na(AverageSales), AverageSales, 0)) %>%
+  mutate(AverageSalesAdj = AverageSales/100)
 
+
+#test = family %>%
+#  complete(RecordDate = seq(min(RecordDate), max(RecordDate), "1 month"))
+#write.csv(test, "test.csv")
+
+family.ts = ts(family$AverageSalesAdj, start=c(2014,6), frequency=12)
+autoplot(family.ts)
+ggseasonplot(family.ts) + 
+  scale_y_log10(labels = scales::dollar)
+
+ggseasonplot(family.ts, polar=TRUE)
+
+
+family.tbats = tbats(family.ts)
+family.tbats$seasonal.periods
+
+
+family.ts %>%
+  ur.kpss() %>%
+  summary()
+#Value of test-statistic is: 0.1288 (stationary)
+
+#run ljung-box test
+Box.test(family.ts, lag=48, fitdf=0, type="Ljung-Box")
+#p-value = 0.9984 - not significant therefore stationary
+
+ggAcf(family.ts)
+
+
+#check model via forecast
+family.forecast = forecast(family.ts)
+summary(family.forecast)
+
+
+#------fit ETS model
+family.ets = ets(family.ts)
+summary(family.ets)
+
+family.ets %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(family.ets)
+
+
+#------fit arima AR model
+family.ar = arima(family.ts, order=c(1,0,0))
+
+family.ar %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(family.ar)
+
+#mPadd.train.predict_ar = forecast(mPadd.ar)
+
+#-----fit arima MA model
+family.ma = arima(family.ts, order=c(0,0,1))
+
+family.ma %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(family.ma)
+
+
+#------------------------------HORROR
 horror = moviesComb %>%
   filter(G_Horror == 1) %>%
   filter(RecordDate >= "2014-06-01") %>% 
-  select(Sales)
-  
+  group_by(RecordDate) %>%
+  summarise(AverageSales = mean(Sales)) %>% 
+  complete(RecordDate = seq(min(RecordDate), max(RecordDate), "1 month")) %>%
+  mutate(AverageSales = ifelse(!is.na(AverageSales), AverageSales, 0)) %>%
+  mutate(AverageSalesAdj = AverageSales/100)
+
+
+
+horror.ts = ts(horror$AverageSales, start=c(2014,6), frequency=12)
+autoplot(horror.ts)
+ggseasonplot(horror.ts) + 
+  scale_y_log10(labels = scales::dollar)
+
+ggseasonplot(horror.ts, polar=TRUE)
+
+
+
+horror.tbats = tbats(horror.ts)
+horror.tbats$seasonal.periods
+
+
+horror.ts %>%
+  ur.kpss() %>%
+  summary()
+#Value of test-statistic is: 0.5868 (stationary)
+
+#run ljung-box test
+Box.test(horror.ts, lag=48, fitdf=0, type="Ljung-Box")
+#p-value = 0.137 - not significant therefore stationary
+
+ggAcf(horror.ts)
+
+
+#check model via forecast
+horror.forecast = forecast(horror.ts)
+summary(horror.forecast)
+
+
+#------fit ETS model
+horror.ets = ets(horror.ts)
+summary(horror.ets)
+
+horror.ets %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(horror.ets)
+
+
+#------fit arima AR model
+horror.ar = arima(horror.ts, order=c(1,0,0))
+
+horror.ar %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(horror.ar)
+
+#mPadd.train.predict_ar = forecast(mPadd.ar)
+
+#-----fit arima MA model
+horror.ma = arima(horror.ts, order=c(0,0,1))
+
+horror.ma %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(horror.ma)
+
+
+
+
+
+#------------------------------ANIMATION
 animation = moviesComb %>%
   filter(G_Animation == 1) %>%
   filter(RecordDate >= "2014-06-01") %>% 
-  select(Sales)
+  group_by(RecordDate) %>%
+  summarise(AverageSales = mean(Sales)) %>% 
+  complete(RecordDate = seq(min(RecordDate), max(RecordDate), "1 month")) %>%
+  mutate(AverageSales = ifelse(!is.na(AverageSales), AverageSales, 0)) %>%
+  mutate(AverageSalesAdj = AverageSales/100)
   
+  
+animation.ts = ts(animation$AverageSalesAdj, start=c(2014,6), frequency=12)
+autoplot(animation.ts)
 
+ggseasonplot(animation.ts) + 
+  scale_y_log10(labels = scales::dollar)
+
+ggseasonplot(animation.ts, polar=TRUE)
+
+
+
+animation.tbats = tbats(animation.ts)
+animation.tbats$seasonal.periods
+
+
+animation.ts %>%
+  ur.kpss() %>%
+  summary()
+#Value of test-statistic is: 0.1336 (stationary)
+
+#run ljung-box test
+Box.test(animation.ts, lag=48, fitdf=0, type="Ljung-Box")
+#p-value = 0.3111 - not significant therefore stationary
+
+ggAcf(animation.ts)
+
+
+#check model via forecast
+animation.forecast = forecast(animation.ts)
+summary(animation.forecast)
+
+
+#------fit ETS model
+animation.ets = ets(animation.ts)
+summary(animation.ets)
+
+animation.ets %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(animation.ets)
+
+
+#------fit arima AR model
+animation.ar = arima(animation.ts, order=c(1,0,0))
+
+animation.ar %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(animation.ar)
+
+#mPadd.train.predict_ar = forecast(mPadd.ar)
+
+#-----fit arima MA model
+animation.ma = arima(animation.ts, order=c(0,0,1))
+
+animation.ma %>%
+  forecast() %>%
+  autoplot()
+
+checkresiduals(animation.ma)
+
+#---------------------------------------------------
 
 
 
