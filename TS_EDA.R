@@ -484,6 +484,7 @@ moviesFull = moviesFull %>%
     Runtime,
     Rated,
     Awards,
+    Budget,
     IMDB_Rating,
     Wide_Release,
     G_Action:G_Western
@@ -508,6 +509,29 @@ moviesComb = moviesComb %>%
 
 #-------------------------EDA
 
+#------------------------------BUDGET (NOTE can't realy look at budget because it's increasing each month)
+monthBudget = moviesComb %>% 
+  filter(!is.na(Budget)) %>%
+  filter(RecordDate >= "2014-06-01") %>% 
+  group_by(RecordDate) %>%
+  summarise(AverageSales = mean(Sales),
+            AverageBudget = mean(Budget, na.rm=TRUE))%>% 
+  complete(RecordDate = seq(min(RecordDate), max(RecordDate), "1 month")) %>%
+  mutate(AverageSales = ifelse(!is.na(AverageSales), AverageSales, 0)) %>%
+  mutate(AverageSalesAdj = AverageSales/100,
+         AverageBudgetAdj = AverageBudget/100)
+
+
+budget.ts = ts(monthBudget$AverageBudget, start=c(2014,6), frequency=12)
+
+autoplot(budget.ts)
+
+ggseasonplot(budget.ts) + 
+  scale_y_log10(labels = scales::dollar)
+
+ggseasonplot(budget.ts, polar=TRUE)
+
+
 #------------------------------ACTION
 action = moviesComb %>%
   filter(G_Action == 1) %>%
@@ -530,6 +554,7 @@ ggseasonplot(action.ts, polar=TRUE)
 
 action.tbats = tbats(action.ts)
 action.tbats$seasonal.periods
+plot(action.tbats)
 
 
 action.ts %>%
@@ -559,7 +584,7 @@ checkresiduals(action.ets)
 
 mean(residuals(action.ets))
 
-#difference
+#------------------------------------------difference
 action.diff = diff(action.ts, lag=6)
 
 autoplot(action.diff)
@@ -579,6 +604,7 @@ checkresiduals(action.diff.ets)
 #p-value = 0.08032
 
 mean(residuals(action.diff.ets))
+#------------------------------------------end difference
 
 
 #train/test split
@@ -633,7 +659,7 @@ actionDiff.ets.predict = forecast(actionDiff.train.ets, h=10)
 accuracy(actionDiff.ets.predict, action.test)
 
 #actionConv.ets.predict = cumsum(actionDiff.ets.predict)
-
+#---------------------------------------------------END DIFF
 
 #ETS model
 action.train.ets = ets(action.train)
@@ -644,6 +670,8 @@ action.train.ets %>%
   autoplot()
 
 action.ets.predict = forecast(action.train.ets, h=10)
+
+checkresiduals(action.train.ets)
 
 
 #naive model
@@ -679,26 +707,36 @@ action.ma.predict = forecast(action.ma)
 action.arima = auto.arima(action.train)
 action.arima.predict = forecast(action.arima, h=10)
 
+#check seasonal naive
+action.snaive = snaive(action.train, h=10)
+checkresiduals(action.snaive)
+
+#check ses
+action.ses = ses(action.train, h=10)
+checkresiduals(action.ses)
+
 
 #check accuracy
-accuracy(action.naive, action.test)       #MAPE: 91.1963
-accuracy(action.mean, action.test)        #MAPE: 71.03007
-accuracy(action.ets.predict, action.test) #MAPE: 35.39728
-accuracy(action.ar.predict, action.test)  #MAPE: 74.58847
-accuracy(action.ma.predict, action.test)  #MAPE: 74.20026
-accuracy(action.arima.predict, action.test) #MAPE: 54.46918
+accuracy(action.naive, action.ts)       #MAPE: 91.1963
+accuracy(action.mean, action.ts)        #MAPE: 71.03007
+accuracy(action.ets.predict, action.ts) #MAPE: 35.39728
+accuracy(action.ar.predict, action.ts)  #MAPE: 74.58847
+accuracy(action.ma.predict, action.ts)  #MAPE: 74.20026
+accuracy(action.arima.predict, action.ts) #MAPE: 54.46918
+accuracy(action.snaive, action.ts)      #MAPE: 39.97
+accuracy(action.ses, action.ts)         #MAPE: 74.58391
+
+
 
 #plot pridictions
 autoplot(action.train) + 
-  autolayer(action.naive, series="Naive") +
-  autolayer(action.mean, series="Mean") +
+  autolayer(action.naive, PI=FALSE, series="Naive") +
+  autolayer(action.mean, PI=FALSE, series="Mean") +
   autolayer(action.ets.predict, series="ETS") +
   autolayer(action.arima.predict, series="ARIMA") +
   autolayer(action.test, series="Actual") 
   
   
-  
-
 
 
 
@@ -820,19 +858,43 @@ horror.forecast = forecast(horror.ts)
 summary(horror.forecast)
 
 
+
+#train/test split
+horror.train = window(horror.ts, end=c(2017,12))
+horror.test = window(horror.ts, start=c(2018,1))
+
+ggAcf(horror.train)
+
+horror.train.tbats = tbats(horror.train)
+horror.train.tbats$seasonal.periods
+plot(horror.train.tbats)
+
+horror.train %>%
+  ur.kpss() %>%
+  summary()
+#test stat: 0.3461 (stationary)
+
+
+#------test arima model
+auto.arima(horror.train)
+
+
 #------fit ETS model
-horror.ets = ets(horror.ts)
+horror.ets = ets(horror.train)
 summary(horror.ets)
 
 horror.ets %>%
   forecast() %>%
   autoplot()
 
-checkresiduals(horror.ets)
+horror.ets.predict = forecast(horror.ets, h=10)
+
+checkresiduals(horror.ets.predict)
 
 
 #------fit arima AR model
-horror.ar = arima(horror.ts, order=c(1,0,0))
+horror.ar = arima(horror.train, order=c(1,0,0))
+horror.ar.predict = forecast(horror.ar, h=10)
 
 horror.ar %>%
   forecast() %>%
@@ -840,10 +902,10 @@ horror.ar %>%
 
 checkresiduals(horror.ar)
 
-#mPadd.train.predict_ar = forecast(mPadd.ar)
 
 #-----fit arima MA model
-horror.ma = arima(horror.ts, order=c(0,0,1))
+horror.ma = arima(horror.train, order=c(0,0,1))
+horror.ma.predict = forecast(horror.ma, h=10)
 
 horror.ma %>%
   forecast() %>%
@@ -852,7 +914,47 @@ horror.ma %>%
 checkresiduals(horror.ma)
 
 
+#naive model
+horror.naive = naive(horror.train, h = 10)
 
+#mean model
+horror.mean <- meanf(horror.train, h = 10)
+
+
+#check auto arima
+horror.arima = auto.arima(horror.train)
+horror.arima.predict = forecast(horror.arima, h=10)
+
+checkresiduals(horror.arima)
+
+#check seasonal naive
+horror.snaive = snaive(horror.train, h=10)
+checkresiduals(horror.snaive)
+
+#check ses
+horror.ses = ses(horror.train, h=10)
+checkresiduals(horror.ses)
+
+
+#check accuracy
+accuracy(horror.naive, horror.ts)       #MAPE: 99.79645
+accuracy(horror.mean, horror.ts)        #MAPE: 122.145
+accuracy(horror.ets.predict, horror.ts) #MAPE: 124.3151
+accuracy(horror.ar.predict, horror.ts)  #MAPE: 122.0328
+accuracy(horror.ma.predict, horror.ts)  #MAPE: 122.6139
+accuracy(horror.arima.predict, horror.ts) #MAPE: 122.0328
+accuracy(horror.snaive, horror.ts)      #MAPE: 378.3337
+accuracy(horror.ses, horror.ts)         #MAPE: 123.6924
+
+
+
+#plot pridictions
+autoplot(action.train) + 
+  autolayer(action.naive, series="Naive") +
+  autolayer(action.mean, series="Mean") +
+  autolayer(action.ets.predict, series="ETS") +
+  autolayer(action.arima.predict, series="ARIMA") +
+  autolayer(action.test, series="Actual") 
 
 
 #------------------------------ANIMATION
