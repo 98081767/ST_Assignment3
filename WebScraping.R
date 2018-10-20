@@ -273,11 +273,10 @@ getMonthlyBoxOffice = function(theYear, theMonth, priceAdj, theType) {
               filter(Rank == "Totals:") %>% 
               mutate(Year = theYear, 
                      Month = theMonth) %>% 
-              select(Sales, Year, Month) %>% 
+              select(Sales, Theatres, Year, Month) %>% 
               mutate(Sales = as.numeric(gsub("[\\$,]", "", Sales))) 
             
           
-            
             return(monthSales)
       
       
@@ -345,9 +344,9 @@ getMonthlyBoxOfficeTSByDate = function(startDate, priceAdj, myType) {
 # - "releasedate" - full monthly results
 # - "widedate" - wide release movies only
 # - "limited" - limted release movies only
-getdf = getMonthlyBoxOfficeTSByDate("1985-1-1", "2018", "widedate")
+getdf = getMonthlyBoxOfficeTSByDate("1985-1-1", "2018", "releasedate")
 
-write.csv(getdf, file="MonthlyTSResultsWide.csv")
+write.csv(getdf, file="MonthlyTSResultsX.csv")
 
 
 #-------------GET MONTHLY SALES PER MOVIE FOR TIME SERIES
