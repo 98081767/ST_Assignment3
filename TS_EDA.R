@@ -67,6 +67,11 @@ str(movies)
 movies.ts = ts(movies$SalesAdj, start=1982, frequency=12)
 
 
+tbreaks = c(0, 10, 100, 1000, 10000, 100000)
+salesBreaks2 = c(0, 1000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000, 50000000, 1000000000)
+salesBreaks3 = c(0, 500000000, 1000000000, 1500000000, 2000000000, 2500000000, 3000000000)
+
+
 #-------------------------EDA
 print(movies.ts)
 
@@ -78,7 +83,23 @@ start(movies.ts)
 end(movies.ts)
 
 ggseasonplot(movies.ts) + 
-  scale_y_log10(labels = scales::dollar)
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Month",
+    y = "Box office Sales",
+    title = "Box Office Sales Seasonal Plot (adj. for inflation) (1982-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
 ggseasonplot(movies.ts, polar=TRUE)
@@ -98,11 +119,28 @@ movies %>%
   geom_point() +
   scale_y_log10(labels = scales::dollar)
 
+
 movies %>%
   ggplot(aes(y=Sales, x=Date)) +
   geom_line() +
   geom_smooth() +
-  scale_y_log10(labels = scales::dollar)
+  scale_y_continuous(labels = scales::dollar, breaks=salesBreaks3) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Year",
+    y = "Box office Sales",
+    title = "Box Office Sales Trend (adj. for inflation) (1982-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
 
@@ -208,7 +246,7 @@ mtrain.tbats = tbats(mtrain)
 mtrain.tbats$seasonal.periods
 
 #check model via forecast
-mtrain.forecast = forecast(mtrain, h=9)
+mtrain.forecast = forecast(mtrain, h=11)
 summary(mtrain.forecast)
 #ETS(M,Ad,M) 
 
@@ -218,11 +256,11 @@ plot(decompose(mtrain, type="additive"))
 ####################################
 #seasonal naive model benchmark
 ####################################
-mtrain.snaive = snaive(mtrain, h=9)
+mtrain.snaive = snaive(mtrain, h=11)
 checkresiduals(mtrain.snaive)
 #p-value < 2.2e-16
 
-mtrain.snaive.forecast = forecast(mtrain.snaive, h=9)
+mtrain.snaive.forecast = forecast(mtrain.snaive, h=11)
 autoplot(mtrain.snaive.forecast)
 
 accuracy(mtrain.snaive.forecast, movies.ts)
@@ -237,7 +275,7 @@ mtrain.hw = hw(mtrain, seasonal="multiplicative")
 checkresiduals(mtrain.hw)
 #p-value = 1.409e-06
 
-mtrain.hw.forecast = forecast(mtrain.hw, h=9)
+mtrain.hw.forecast = forecast(mtrain.hw, h=11)
 autoplot(mtrain.hw.forecast)
 
 accuracy(mtrain.hw.forecast, movies.ts)
@@ -259,7 +297,7 @@ summary(mtrain.ets)
 checkresiduals(mtrain.ets)
 #p-value = 1.296e-06
 
-mtrain.ets.forecast = forecast(mtrain.ets, h=9)
+mtrain.ets.forecast = forecast(mtrain.ets, h=11)
 autoplot(mtrain.ets.forecast)
 
 accuracy(mtrain.ets.forecast, movies.ts)
@@ -275,7 +313,7 @@ summary(mtrain.ets2)
 checkresiduals(mtrain.ets2)
 #p-value = 3.544e-08
 
-mtrain.ets2.forecast = forecast(mtrain.ets2, h=9)
+mtrain.ets2.forecast = forecast(mtrain.ets2, h=11)
 autoplot(mtrain.ets2.forecast)
 
 accuracy(mtrain.ets2.forecast, movies.ts)
@@ -294,7 +332,7 @@ summary(mtrain.ARIMA)
 checkresiduals(mtrain.ARIMA)
 #p-value = 4.346e-05
 
-mtrain.ARIMA.forecast = forecast(mtrain.ARIMA, h=9)
+mtrain.ARIMA.forecast = forecast(mtrain.ARIMA, h=11)
 autoplot(mtrain.ARIMA.forecast)
 
 accuracy(mtrain.ARIMA.forecast, movies.ts)
@@ -310,7 +348,7 @@ summary(mtrain.ARIMA2)
 checkresiduals(mtrain.ARIMA2)
 #p-value = 4.446e-05
 
-mtrain.ARIMA2.forecast = forecast(mtrain.ARIMA2, h=9)
+mtrain.ARIMA2.forecast = forecast(mtrain.ARIMA2, h=11)
 autoplot(mtrain.ARIMA2.forecast)
 
 accuracy(mtrain.ARIMA2.forecast, movies.ts)
@@ -331,7 +369,7 @@ summary(mtrain.fourier)
 checkresiduals(mtrain.fourier)
 #p-value < 2.2e-16
 
-mtrain.fourier.forecast = forecast(mtrain.fourier, xreg=fourier(mtrain, K=Kval, h=9))
+mtrain.fourier.forecast = forecast(mtrain.fourier, xreg=fourier(mtrain, K=Kval, h=11))
 autoplot(mtrain.fourier.forecast)
 
 accuracy(mtrain.fourier.forecast, movies.ts)
@@ -361,7 +399,7 @@ summary(mtrain.tbats)
 checkresiduals(mtrain.tbats)
 #p-value = 5.973e-05
 
-mtrain.tbats.forecast = forecast(mtrain.tbats, h=9)
+mtrain.tbats.forecast = forecast(mtrain.tbats, h=11)
 autoplot(mtrain.tbats.forecast)
 
 accuracy(mtrain.tbats.forecast, movies.ts)
@@ -389,16 +427,39 @@ result = rbind(accuracy(mtrain.snaive.forecast, movies.ts)[2, c(2,3,5,6)],
 rownames(result) = c("Seasonal Naive", "Holt Winters", "ETS with Box Cox", "ETS", "ARIMA", "ARIMA Deep", "Fourier", "TBATS")
 result
 
+write.csv(result, "AccuracyResults.csv")
+
 
 #plot over test data
 autoplot(movies.train) +
+  autolayer(mtrain.ets.forecast, PI=TRUE, series="ETS with Box Cox") +
   autolayer(movies.test, PI=FALSE, series="Actual") +
   autolayer(mtrain.snaive.forecast, PI=FALSE, series="Seasonal Naive") +
-  autolayer(mtrain.hw.forecast, PI=FALSE, series="Holt Winters") +
-  autolayer(mtrain.ets.forecast, PI=FALSE, series="ETS with Box Cox") +
-  autolayer(mtrain.fourier.forecast, PI=FALSE, series="ARIMA Fourier") +
-  autolayer(mtrain.tbats.forecast, PI=FALSE, series="TBATS") +
-  scale_y_log10(labels = scales::dollar)
+  #autolayer(mtrain.hw.forecast, PI=FALSE, series="Holt Winters") +
+  #autolayer(mtrain.fourier.forecast, PI=FALSE, series="ARIMA Fourier") +
+  #autolayer(mtrain.tbats.forecast, PI=FALSE, series="TBATS") +
+  geom_line(size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales (\'00)",
+    title = "Forecast - Box Office Sales"
+  ) 
+
+
+write.csv(mtrain.ets.forecast, "forecast.csv")
+
+
 
 
 #run cross validation
@@ -409,6 +470,9 @@ forcastfn = function(y, h) {
 e = tsCV(movies.ts, forcastfn, h=1)
 sqrt(mean(e^2, na.rm=TRUE)) #RMSE (CV)
 #3042096
+
+
+
 
 
 #----------------------------------train / test split - for 2017
@@ -659,12 +723,67 @@ action = moviesComb %>%
 
 
 action.ts = ts(action$AverageSalesAdj, start=c(2014,6), frequency=12)
-autoplot(action.ts)
+
+autoplot(action.ts) +
+  geom_line(colour="#0FC3C7", size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Action Films - Box Office Sales (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
+
+
+
 ggseasonplot(action.ts) + 
-  scale_y_log10(labels = scales::dollar)
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Action Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
-ggseasonplot(action.ts, polar=TRUE)
+ggseasonplot(action.ts, polar=TRUE) +
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Action Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 atrain = window(action.ts, end=c(2017,12))
 atest = window(action.ts, start=c(2018,1))
@@ -698,11 +817,11 @@ plot(decompose(atrain, type="additive"))
 ####################################
 #seasonal naive model benchmark
 ####################################
-atrain.snaive = snaive(atrain, h=9)
+atrain.snaive = snaive(atrain, h=11)
 checkresiduals(atrain.snaive)
 #p-value = 0.01019
 
-atrain.snaive.forecast = forecast(atrain.snaive, h=9)
+atrain.snaive.forecast = forecast(atrain.snaive, h=11)
 autoplot(atrain.snaive.forecast)
 
 accuracy(atrain.snaive.forecast, action.ts)
@@ -717,7 +836,7 @@ atrain.hw = hw(atrain, seasonal="multiplicative")
 checkresiduals(atrain.hw)
 #p-value = 3.739e-12
 
-atrain.hw.forecast = forecast(atrain.hw, h=9)
+atrain.hw.forecast = forecast(atrain.hw, h=11)
 autoplot(atrain.hw.forecast)
 
 accuracy(atrain.hw.forecast, action.ts)
@@ -739,7 +858,7 @@ summary(atrain.ets)
 checkresiduals(atrain.ets)
 #p-value = 0.7102
 
-atrain.ets.forecast = forecast(atrain.ets, h=9)
+atrain.ets.forecast = forecast(atrain.ets, h=11)
 autoplot(atrain.ets.forecast)
 
 accuracy(atrain.ets.forecast, action.ts)
@@ -755,7 +874,7 @@ summary(atrain.ets2)
 checkresiduals(atrain.ets2)
 #p-value < 2.2e-16
 
-atrain.ets2.forecast = forecast(atrain.ets2, h=9)
+atrain.ets2.forecast = forecast(atrain.ets2, h=11)
 autoplot(atrain.ets2.forecast)
 
 accuracy(atrain.ets2.forecast, action.ts)
@@ -774,7 +893,7 @@ summary(atrain.ARIMA)
 checkresiduals(atrain.ARIMA)
 #p-value = 0.1697
 
-atrain.ARIMA.forecast = forecast(atrain.ARIMA, h=9)
+atrain.ARIMA.forecast = forecast(atrain.ARIMA, h=11)
 autoplot(atrain.ARIMA.forecast)
 
 accuracy(atrain.ARIMA.forecast, action.ts)
@@ -794,7 +913,7 @@ summary(atrain.fourier)
 checkresiduals(atrain.fourier)
 #p-value = 0.002455
 
-atrain.fourier.forecast = forecast(atrain.fourier, xreg=fourier(atrain, K=Kval, h=9))
+atrain.fourier.forecast = forecast(atrain.fourier, xreg=fourier(atrain, K=Kval, h=11))
 autoplot(atrain.fourier.forecast)
 
 accuracy(atrain.fourier.forecast, action.ts)
@@ -823,7 +942,7 @@ summary(atrain.tbats)
 checkresiduals(atrain.tbats)
 #p-value = 1.532e-14
 
-atrain.tbats.forecast = forecast(atrain.tbats, h=9)
+atrain.tbats.forecast = forecast(atrain.tbats, h=11)
 autoplot(atrain.tbats.forecast)
 
 accuracy(atrain.tbats.forecast, action.ts)
@@ -905,7 +1024,7 @@ summary(aTheatresTrain.ets)
 checkresiduals(aTheatresTrain.ets)
 #p-value = 0.06983
 
-aTheatresTrain.ets.forecast = forecast(aTheatresTrain.ets, h=9)
+aTheatresTrain.ets.forecast = forecast(aTheatresTrain.ets, h=11)
 autoplot(aTheatresTrain.ets.forecast)
 
 accuracy(aTheatresTrain.ets.forecast, actionTheatres.ts)
@@ -920,7 +1039,7 @@ summary(aTheatresTrain.tbats)
 checkresiduals(aTheatresTrain.tbats)
 #p-value = 2.875e-07
 
-aTheatresTrain.tbats.forecast = forecast(aTheatresTrain.tbats, h=9)
+aTheatresTrain.tbats.forecast = forecast(aTheatresTrain.tbats, h=11)
 autoplot(aTheatresTrain.tbats.forecast)
 
 accuracy(aTheatresTrain.tbats.forecast, actionTheatres.ts)
@@ -962,19 +1081,37 @@ rownames(aresult) = c("Seasonal Naive", "Holt Winters", "ETS with Box Cox", "ETS
 aresult
 
 
+write.csv(aresult, "AccuracyResults.csv")
+
 
 #plot pridictions
 autoplot(atrain) + 
+  autolayer(atrain.tbats.forecast, PI=TRUE, series="TBATS") +
   autolayer(atest, series="Actual") +
   autolayer(atrain.snaive.forecast, PI=FALSE, series="Naive") +
-  autolayer(atrain.ets2.forecast, PI=FALSE, series="ETS") +
+  #autolayer(atrain.ets2.forecast, PI=FALSE, series="ETS") +
   autolayer(atrain.fourier.forecast, PI=FALSE, series="Fourier") +
-  autolayer(atrain.tbats.forecast, PI=TRUE, series="TBATS") +
-  autolayer(atrainDR.ARIMA.forecast, PI=FALSE, series="Dynamic Regression") +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  #autolayer(atrainDR.ARIMA.forecast, PI=FALSE, series="Dynamic Regression") +
+  geom_line(size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales (\'00)",
+    title = "Forecast - Box Office Sales for Action Films"
+  ) 
   
   
-
+write.csv(atrain.tbats.forecast, "forecast.csv")
 
 
 #------------------------------FAMILY
@@ -990,15 +1127,65 @@ family = moviesComb %>%
 
 
 family.ts = ts(family$AverageSalesAdj, start=c(2014,6), frequency=12)
+
 autoplot(family.ts) + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  geom_line(colour="#0FC3C7", size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Family Films - Box Office Sales (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
 ggseasonplot(family.ts) + 
-  scale_y_log10(labels = scales::dollar)
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Family Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
-ggseasonplot(family.ts, polar=TRUE)
-
+ggseasonplot(family.ts, polar=TRUE) + 
+scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Family Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
 ftrain = window(family.ts, end=c(2017,12))
@@ -1024,11 +1211,11 @@ plot(decompose(ftrain, type="additive"))
 ####################################
 #seasonal naive model benchmark
 ####################################
-ftrain.snaive = snaive(ftrain, h=9)
+ftrain.snaive = snaive(ftrain, h=11)
 checkresiduals(ftrain.snaive)
 #p-value = 0.5604
 
-ftrain.snaive.forecast = forecast(ftrain.snaive, h=9)
+ftrain.snaive.forecast = forecast(ftrain.snaive, h=11)
 autoplot(ftrain.snaive.forecast)
 
 accuracy(ftrain.snaive.forecast, family.ts)
@@ -1043,7 +1230,7 @@ ftrain.hw = hw(ftrain, seasonal="additive")
 checkresiduals(ftrain.hw)
 #p-value = 7.308e-06
 
-ftrain.hw.forecast = forecast(ftrain.hw, h=9)
+ftrain.hw.forecast = forecast(ftrain.hw, h=11)
 autoplot(ftrain.hw.forecast)
 
 accuracy(ftrain.hw.forecast, family.ts)
@@ -1065,7 +1252,7 @@ summary(ftrain.ets)
 checkresiduals(ftrain.ets)
 #p-value = 0.6805
 
-ftrain.ets.forecast = forecast(ftrain.ets, h=9)
+ftrain.ets.forecast = forecast(ftrain.ets, h=11)
 autoplot(ftrain.ets.forecast)
 
 accuracy(ftrain.ets.forecast, family.ts)
@@ -1081,7 +1268,7 @@ summary(ftrain.ets2)
 checkresiduals(ftrain.ets2)
 #p-value = 0.3016
 
-ftrain.ets2.forecast = forecast(ftrain.ets2, h=9)
+ftrain.ets2.forecast = forecast(ftrain.ets2, h=11)
 autoplot(ftrain.ets2.forecast)
 
 accuracy(ftrain.ets2.forecast, family.ts)
@@ -1100,7 +1287,7 @@ summary(ftrain.ARIMA)
 checkresiduals(ftrain.ARIMA)
 #p-value = 0.4007
 
-ftrain.ARIMA.forecast = forecast(ftrain.ARIMA, h=9)
+ftrain.ARIMA.forecast = forecast(ftrain.ARIMA, h=11)
 autoplot(ftrain.ARIMA.forecast)
 
 accuracy(ftrain.ARIMA.forecast, family.ts)
@@ -1117,7 +1304,7 @@ summary(ftrain.ARIMA2)
 checkresiduals(ftrain.ARIMA2)
 #p-value = 0.7782
 
-ftrain.ARIMA2.forecast = forecast(ftrain.ARIMA2, h=9)
+ftrain.ARIMA2.forecast = forecast(ftrain.ARIMA2, h=11)
 autoplot(ftrain.ARIMA2.forecast)
 
 accuracy(ftrain.ARIMA2.forecast, family.ts)
@@ -1138,7 +1325,7 @@ summary(ftrain.fourier)
 checkresiduals(ftrain.fourier)
 #p-value = 0.1431
 
-ftrain.fourier.forecast = forecast(ftrain.fourier, xreg=fourier(ftrain, K=Kval, h=9))
+ftrain.fourier.forecast = forecast(ftrain.fourier, xreg=fourier(ftrain, K=Kval, h=11))
 autoplot(ftrain.fourier.forecast)
 
 accuracy(ftrain.fourier.forecast, family.ts)
@@ -1169,7 +1356,7 @@ summary(ftrain.tbats)
 checkresiduals(ftrain.tbats)
 #p-value = 0.1899
 
-ftrain.tbats.forecast = forecast(ftrain.tbats, h=9)
+ftrain.tbats.forecast = forecast(ftrain.tbats, h=11)
 autoplot(ftrain.tbats.forecast)
 
 accuracy(ftrain.tbats.forecast, family.ts)
@@ -1192,19 +1379,40 @@ fresult = rbind(accuracy(ftrain.snaive.forecast, family.ts)[2, c(2,3,5,6)],
 rownames(fresult) = c("Seasonal Naive", "Holt Winters", "ETS with Box Cox", "ETS", "ARIMA", "Fourier", "TBATS")
 fresult
 
+write.csv(fresult, "AccuracyResults.csv")
+
 
 
 #plot predictions
-autoplot(ftrain) + 
-  autolayer(ftest, series="Actual") +
-  autolayer(ftrain.snaive.forecast, PI=FALSE, series="Naive") +
+autoplot(ftrain) +
   autolayer(ftrain.ets.forecast, PI=FALSE, series="ETS with Box Cox") +
-  autolayer(ftrain.ets2.forecast, PI=FALSE, series="ETS") +
-  autolayer(ftrain.ARIMA.forecast, PI=FALSE, series="ARIMA") +
-  autolayer(ftrain.fourier.forecast, PI=FALSE, series="Fourier") +
-  autolayer(ftrain.tbats.forecast, PI=FALSE, series="TBATS") 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  #autolayer(ftrain.hw.forecast, PI=TRUE, series="Holt-Winters") +
+  autolayer(ftrain.snaive.forecast, PI=FALSE, series="Naive") +
+  autolayer(ftest, series="Actual") +
+  #autolayer(ftrain.ets2.forecast, PI=FALSE, series="ETS") +
+  #autolayer(ftrain.ARIMA.forecast, PI=FALSE, series="ARIMA") +
+  #autolayer(ftrain.fourier.forecast, PI=FALSE, series="Fourier") +
+  #autolayer(ftrain.tbats.forecast, PI=FALSE, series="TBATS") 
+  geom_line(size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales (\'00)",
+    title = "Forecast - Box Office Sales for Family Movies"
+  ) 
 
+
+write.csv(ftrain.hw.forecast, "forecast.csv")
 
 #-----------------------
 
@@ -1225,12 +1433,67 @@ horror = moviesComb %>%
 
 
 horror.ts = ts(horror$AverageSales, start=c(2014,6), frequency=12)
-autoplot(horror.ts)
-ggseasonplot(horror.ts) + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
 
-ggseasonplot(horror.ts, polar=TRUE) + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+autoplot(horror.ts) + 
+scale_y_continuous(labels = scales::dollar) +
+  geom_line(colour="#0FC3C7", size=1) + 
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Horror Films - Box Office Sales (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
+
+
+
+
+ggseasonplot(horror.ts) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Horror Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
+
+ggseasonplot(horror.ts, polar=TRUE) +
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Horror Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
 htrain = window(horror.ts, end=c(2017,12))
@@ -1258,11 +1521,11 @@ plot(decompose(htrain, type="additive"))
 ####################################
 #seasonal naive model benchmark
 ####################################
-htrain.snaive = snaive(htrain, h=9)
+htrain.snaive = snaive(htrain, h=11)
 checkresiduals(htrain.snaive)
 #p-value = 0.05804
 
-htrain.snaive.forecast = forecast(htrain.snaive, h=9)
+htrain.snaive.forecast = forecast(htrain.snaive, h=11)
 autoplot(htrain.snaive.forecast)
 
 accuracy(htrain.snaive.forecast, horror.ts)
@@ -1277,7 +1540,7 @@ htrain.hw = hw(htrain, seasonal="multiplicative")
 checkresiduals(htrain.hw)
 #p-value = 1.288e-10
 
-htrain.hw.forecast = forecast(htrain.hw, h=9)
+htrain.hw.forecast = forecast(htrain.hw, h=11)
 autoplot(htrain.hw.forecast)
 
 accuracy(htrain.hw.forecast, horror.ts)
@@ -1299,7 +1562,7 @@ summary(htrain.ets)
 checkresiduals(htrain.ets)
 #p-value = 1
 
-htrain.ets.forecast = forecast(htrain.ets, h=9)
+htrain.ets.forecast = forecast(htrain.ets, h=11)
 autoplot(htrain.ets.forecast)
 
 accuracy(htrain.ets.forecast, horror.ts)
@@ -1315,7 +1578,7 @@ summary(htrain.ets2)
 checkresiduals(htrain.ets2)
 #p-value = 0.1179
 
-htrain.ets2.forecast = forecast(htrain.ets2, h=9)
+htrain.ets2.forecast = forecast(htrain.ets2, h=11)
 autoplot(htrain.ets2.forecast)
 
 accuracy(htrain.ets2.forecast, horror.ts)
@@ -1334,7 +1597,7 @@ summary(htrain.ARIMA)
 checkresiduals(htrain.ARIMA)
 #p-value = 0.6885
 
-htrain.ARIMA.forecast = forecast(htrain.ARIMA, h=9)
+htrain.ARIMA.forecast = forecast(htrain.ARIMA, h=11)
 autoplot(htrain.ARIMA.forecast)
 
 accuracy(htrain.ARIMA.forecast, horror.ts)
@@ -1346,7 +1609,7 @@ accuracy(htrain.ARIMA.forecast, horror.ts)
 ####################################
 # Dynamic harmoic regression
 ####################################
-Kval = 5 #must not be greater than half h
+Kval = 4 #must not be greater than half h
 
 htrain.fourier = auto.arima(htrain, xreg=fourier(htrain, K=Kval), seasonal = FALSE)
 summary(htrain.fourier)
@@ -1355,7 +1618,7 @@ summary(htrain.fourier)
 checkresiduals(htrain.fourier)
 #p-value = 0.002455
 
-htrain.fourier.forecast = forecast(htrain.fourier, xreg=fourier(htrain, K=Kval, h=9))
+htrain.fourier.forecast = forecast(htrain.fourier, xreg=fourier(htrain, K=Kval, h=11))
 autoplot(htrain.fourier.forecast)
 
 accuracy(htrain.fourier.forecast, horror.ts)
@@ -1384,7 +1647,7 @@ summary(htrain.tbats)
 checkresiduals(htrain.tbats)
 #p-value = 0.2788
 
-htrain.tbats.forecast = forecast(htrain.tbats, h=9)
+htrain.tbats.forecast = forecast(htrain.tbats, h=11)
 autoplot(htrain.tbats.forecast)
 
 accuracy(htrain.tbats.forecast, horror.ts)
@@ -1468,7 +1731,7 @@ summary(hTheatresTrain.ets)
 checkresiduals(hTheatresTrain.ets)
 #p-value = 0.5226
 
-hTheatresTrain.ets.forecast = forecast(hTheatresTrain.ets, h=9)
+hTheatresTrain.ets.forecast = forecast(hTheatresTrain.ets, h=11)
 autoplot(hTheatresTrain.ets.forecast)
 
 accuracy(hTheatresTrain.ets.forecast, actionTheatres.ts)
@@ -1532,21 +1795,40 @@ hresult = rbind(accuracy(htrain.snaive.forecast, horror.ts)[2, c(2,3,5,6)],
 rownames(hresult) = c("Seasonal Naive", "Holt Winters", "ETS with Box Cox", "ETS", "ARIMA", "Fourier", "TBATS", "Dynamic Regression")
 hresult
 
+write.csv(hresult, "AccuracyResults.csv")
 
 
 #plot pridictions
 autoplot(htrain) + 
+  autolayer(htrain.tbats.forecast, PI=TRUE, series="TBATS") +
+  autolayer(htrain.hw.forecast, PI=FALSE, series="Holt-Winters") + 
   autolayer(atest, series="Actual") +
-  autolayer(htrain.snaive.forecast, PI=FALSE, series="Naive") +
-  autolayer(htrain.ets.forecast, PI=FALSE, series="ETS") +
+  #autolayer(htrain.snaive.forecast, PI=FALSE, series="Naive") +
+  #autolayer(htrain.ets.forecast, PI=FALSE, series="ETS") +
   #autolayer(htrain.ets2.forecast, PI=FALSE, series="ETS") +
   #autolayer(htrain.fourier.forecast, PI=FALSE, series="Fourier") +
-  autolayer(htrain.tbats.forecast, PI=FALSE, series="TBATS") +
-  autolayer(htrainDR.ARIMA.forecast, PI=TRUE, series="Dynamic Regression") +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  #autolayer(htrainDR.ARIMA.forecast, PI=TRUE, series="Dynamic Regression") +
+  geom_line(size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales (\'00)",
+    title = "Forecast - Box Office Sales for Horror Films"
+  ) 
 
 
 
+write.csv(htrain.tbats.forecast, "forecast.csv")
 
 
 
@@ -1567,14 +1849,64 @@ animation = moviesComb %>%
   
   
 animation.ts = ts(animation$AverageSalesAdj, start=c(2014,6), frequency=12)
+
 autoplot(animation.ts) + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  geom_line(colour="#0FC3C7", size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Animation Films - Box Office Sales (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 ggseasonplot(animation.ts) + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Animation Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 ggseasonplot(animation.ts, polar=TRUE) + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales",
+    title = "Animation Films - Box Office Sales Seasonal Plot (2014-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
 anitrain = window(animation.ts, end=c(2017,12))
@@ -1588,7 +1920,7 @@ ggAcf(anitrain)
 #every 6 months
 
 #check model via forecast
-anitrain.forecast = forecast(anitrain, h=9)
+anitrain.forecast = forecast(anitrain, h=11)
 summary(anitrain.forecast)
 #ETS(A,N,N)
 
@@ -1599,11 +1931,11 @@ plot(decompose(anitrain, type="additive"))
 ####################################
 #seasonal naive model benchmark
 ####################################
-anitrain.snaive = snaive(anitrain, h=9)
+anitrain.snaive = snaive(anitrain, h=11)
 checkresiduals(anitrain.snaive)
 #p-value = 0.7012
 
-anitrain.snaive.forecast = forecast(anitrain.snaive, h=9)
+anitrain.snaive.forecast = forecast(anitrain.snaive, h=11)
 autoplot(anitrain.snaive.forecast)
 
 accuracy(anitrain.snaive.forecast, animation.ts)
@@ -1618,7 +1950,7 @@ anitrain.hw = hw(anitrain, seasonal="additive", damped=TRUE)
 checkresiduals(anitrain.hw)
 #p-value = 3.799e-05
 
-anitrain.hw.forecast = forecast(anitrain.hw, h=9)
+anitrain.hw.forecast = forecast(anitrain.hw, h=11)
 autoplot(anitrain.hw.forecast)
 
 accuracy(anitrain.hw.forecast, animation.ts)
@@ -1640,7 +1972,7 @@ summary(anitrain.ets)
 checkresiduals(anitrain.ets)
 #p-value = 0.1067
 
-anitrain.ets.forecast = forecast(anitrain.ets, h=9)
+anitrain.ets.forecast = forecast(anitrain.ets, h=11)
 autoplot(anitrain.ets.forecast)
 
 accuracy(anitrain.ets.forecast, animation.ts)
@@ -1656,7 +1988,7 @@ summary(anitrain.ets2)
 checkresiduals(anitrain.ets2)
 #p-value = 0.1067
 
-anitrain.ets2.forecast = forecast(anitrain.ets2, h=9)
+anitrain.ets2.forecast = forecast(anitrain.ets2, h=11)
 autoplot(anitrain.ets2.forecast)
 
 accuracy(anitrain.ets2.forecast, animation.ts)
@@ -1675,7 +2007,7 @@ summary(anitrain.ARIMA)
 checkresiduals(anitrain.ARIMA)
 #p-value = 0.1612
 
-anitrain.ARIMA.forecast = forecast(anitrain.ARIMA, h=9)
+anitrain.ARIMA.forecast = forecast(anitrain.ARIMA, h=11)
 autoplot(anitrain.ARIMA.forecast)
 
 accuracy(anitrain.ARIMA.forecast, animation.ts)
@@ -1695,7 +2027,7 @@ summary(anitrain.fourier)
 checkresiduals(anitrain.fourier)
 # p-value = 0.02365
 
-anitrain.fourier.forecast = forecast(anitrain.fourier, xreg=fourier(anitrain, K=Kval, h=9))
+anitrain.fourier.forecast = forecast(anitrain.fourier, xreg=fourier(anitrain, K=Kval, h=11))
 autoplot(anitrain.fourier.forecast)
 
 accuracy(anitrain.fourier.forecast, animation.ts)
@@ -1724,7 +2056,7 @@ summary(anitrain.tbats)
 checkresiduals(anitrain.tbats)
 #p-value = 5.894e-08
 
-anitrain.tbats.forecast = forecast(anitrain.tbats, h=9)
+anitrain.tbats.forecast = forecast(anitrain.tbats, h=11)
 autoplot(anitrain.tbats.forecast)
 
 accuracy(anitrain.tbats.forecast, animation.ts)
@@ -1747,21 +2079,40 @@ aniresult = rbind(accuracy(anitrain.snaive.forecast, animation.ts)[2, c(2,3,5,6)
 rownames(aniresult) = c("Seasonal Naive", "Holt Winters", "ETS with Damping", "ETS", "ARIMA", "Fourier", "TBATS")
 aniresult
 
+write.csv(aniresult, "AccuracyResults.csv")
+
 
 
 #plot pridictions
 autoplot(anitrain) + 
-  autolayer(atest, series="Actual") +
-  autolayer(anitrain.snaive.forecast, PI=FALSE, series="Naive") +
-  autolayer(anitrain.hw.forecast, PI=FALSE, series="Holt-Winters") +
-  autolayer(anitrain.ets.forecast, PI=FALSE, series="ETS") +
-  #autolayer(anitrain.ets2.forecast, PI=FALSE, series="ETS") +
+  autolayer(anitrain.snaive.forecast, PI=TRUE, series="Naive") +
   autolayer(anitrain.fourier.forecast, PI=FALSE, series="Fourier") +
-  autolayer(anitrain.tbats.forecast, PI=FALSE, series="TBATS") +
+  autolayer(atest, series="Actual") +
+  #autolayer(anitrain.hw.forecast, PI=FALSE, series="Holt-Winters") +
+  #autolayer(anitrain.ets.forecast, PI=FALSE, series="ETS") +
+  #autolayer(anitrain.ets2.forecast, PI=FALSE, series="ETS") +
+  #autolayer(anitrain.tbats.forecast, PI=FALSE, series="TBATS") +
   #autolayer(anitrainDR.ARIMA.forecast, PI=TRUE, series="Dynamic Regression") +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2)
+  geom_line(size=1) + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Date",
+    y = "Box office Sales (\'00)",
+    title = "Forecast - Box Office Sales for Animation films"
+  ) 
 
 
+write.csv(anitrain.snaive.forecast, "forecast.csv")
 
 #---------------------------------------------------
 

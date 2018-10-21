@@ -214,7 +214,7 @@ mclean2 %>%
   mutate(Rated = replace(Rated, Rated %in% c("R", "TV-MA"), "MA")) %>%
   mutate(Rated = replace(Rated, Rated %in% c("NOT RATED", "UNRATED", "APPROVED", "PASSED"), "NOT RATED")) %>%
   mutate(Rated = factor(Rated, levels=c("G", "PG", "MA", "NOT RATED"))) %>% 
-  mutate(Highlight = Rated %in% c("G", "PG")) %>% 
+  mutate(Highlight = Rated %in% c("G", "PG")) %>%
   ggplot(aes(x=as.factor(Genre), fill=factor(Rated))) +
     geom_bar(position="fill") + 
   theme_bw() + 
@@ -228,12 +228,56 @@ mclean2 %>%
   ) +
   labs(
     x = "Genre",
-    y = "Number of Movies",
+    y = "% Movies",
     title = "Relationship between Genre and Classification (2015-2017)",
     caption = "Data source: IMDb 2018"
   ) 
 
 
+
+
+#genre by margin
+mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(Budget)) %>%
+  gather(Genre, GValid, G_Action:G_Western) %>% 
+  filter(GValid == 1) %>% 
+  mutate(Genre = str_replace(Genre, "G_", "")) %>% 
+  mutate(Highlight = Genre %in% c("Action", "Adventure", "Animation", "Fantasy", "Sci.Fi")) %>%
+  mutate(Margin = Sales - Budget) %>% 
+  ggplot(aes(x=as.factor(Genre), y=Margin)) +
+  geom_boxplot() + 
+  scale_y_continuous(labels = scales::dollar) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Genre",
+    y = "Margin",
+    title = "Relationship between Genre and Margin (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) 
+
+
+genreMargins = mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(Budget)) %>%
+  gather(Genre, GValid, G_Action:G_Western) %>% 
+  filter(GValid == 1) %>% 
+  mutate(Genre = str_replace(Genre, "G_", "")) %>% 
+  mutate(Highlight = Genre %in% c("Action", "Adventure", "Animation", "Fantasy", "Sci.Fi")) %>%
+  mutate(Margin = Sales - Budget) %>% 
+  group_by(Genre) %>%
+  summarise(MedianMargin = median(Margin)) %>%
+  arrange(desc(MedianMargin))
+
+write.csv(genreMargins, "GenreMargins.csv")
 
 #--------------------------------------------modelling
 
