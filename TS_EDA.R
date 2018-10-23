@@ -143,6 +143,71 @@ movies %>%
   ) 
 
 
+yearlySales = movies %>%
+  filter(Year >= 2000) %>% 
+  filter(Year != 2018) %>%
+  group_by(Year) %>%
+  summarise(Sales = sum(Sales))
+
+
+yearlySales %>%
+  ggplot(aes(y=Sales, x=Year)) +
+    geom_point() +
+    geom_smooth(method="lm") +
+    scale_y_continuous(labels = scales::dollar)
+
+
+yearlySales.ts = ts(yearlySales$Sales, start=2000, frequency=1)
+
+autoplot(yearlySales.ts) +
+  scale_y_continuous(labels = scales::dollar) +
+  geom_smooth(method="lm", se=FALSE) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    axis.title = element_text(size=12),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Year",
+    y = "Box office Sales",
+    title = "Box Office Sales Trend by Year (2000-2018)",
+    caption = "Data source: IMDb 2018"
+  ) 
+
+
+yearlySales.mod = lm(Sales ~ Year, data=yearlySales)
+
+summary(yearlySales.mod)
+
+# Call:
+#   lm(formula = Sales ~ Year, data = yearlySales)
+# 
+# Residuals:
+#   Min         1Q     Median         3Q        Max 
+# -651187771 -463647707  -29284973  383330460 1032325625 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)  2.591e+11  4.672e+10   5.546 4.43e-05 ***
+#   Year        -1.226e+08  2.326e+07  -5.273 7.58e-05 ***
+#               -122,600,000        
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 5.12e+08 on 16 degrees of freedom
+# Multiple R-squared:  0.6347,	Adjusted R-squared:  0.6119 
+# F-statistic:  27.8 on 1 and 16 DF,  p-value: 7.584e-05
+
+
+predict(yearlySales.mod, data.frame(Year=2011), interval="prediction")
+
+
+
 
 #movies.diff = diff(movies.ts, lag=0.5)
 #movies.diff1 = diff(movies.ts, lag=12)
